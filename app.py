@@ -103,7 +103,7 @@ st.markdown("---")
 # --- HIGH-RESOLUTION MAP DATA ---
 @st.cache_data
 def load_high_res_data():
-    return pd.read_csv("data/high_res_input_sample_100.csv")
+    return pd.read_csv("Data/high_res_input_sample_100.csv")
 
 def get_pm_color(pm):
     if pm <= 60:
@@ -154,10 +154,10 @@ st.download_button(
 st.markdown("### 🌐 Multi-City Live PM2.5 & PM10 Monitoring Dashboard")
 
 available_cities = {
-    "Delhi": "data/delhi_pm_data.csv",
-    "Bangalore": "data/bangalore_pm_data.csv",
-    "Hyderabad": "data/hyderabad_pm_data.csv",
-    "Kolkata": "data/kolkata_pm_data.csv"
+    "Delhi": "Data/delhi_pm_data.csv",
+    "Bangalore": "Data/bangalore_pm_data.csv",
+    "Hyderabad": "Data/hyderabad_pm_data.csv",
+    "Kolkata": "Data/kolkata_pm_data.csv"
 }
 
 st.sidebar.header("🔧 Configuration")
