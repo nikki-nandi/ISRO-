@@ -3,9 +3,6 @@ pandas
 numpy
 pydeck
 joblib
-gdown
 scikit-learn
+gdown
 altair
-prophet
-plotly
-requests
