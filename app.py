@@ -89,7 +89,7 @@ def get_pm_color(pm):
 st.markdown("### 🌏 High-Resolution PM2.5 Prediction Map")
 @st.cache_data
 def load_high_res_data():
-    return pd.read_csv("Data/high_res_input_sample_100.csv")
+    return pd.read_csv("data/high_res_input_sample_100.csv")
 
 df_map = load_high_res_data()
 features = ["aod", "reflectance_SWIR", "temperature_2m", "humidity_2m", "pbl_height", "wind_speed_10m", "hour"]
@@ -100,16 +100,21 @@ df_map["color"] = df_map["PM2.5_Predicted"].apply(get_pm_color)
 layer_map = pdk.Layer("ScatterplotLayer", data=df_map, get_position='[longitude, latitude]', get_radius=10000, get_fill_color="color", pickable=True, opacity=0.8)
 view_map = pdk.ViewState(latitude=22.5, longitude=80.0, zoom=4.5, pitch=40)
 
-st.pydeck_chart(pdk.Deck(map_style="mapbox://styles/mapbox/dark-v10", initial_view_state=view_map, layers=[layer_map], tooltip={"text": "Lat: {latitude}\nLon: {longitude}\nPM2.5: {PM2.5_Predicted}"}))
+st.pydeck_chart(pdk.Deck(
+    map_style="mapbox://styles/mapbox/dark-v10",
+    initial_view_state=view_map,
+    layers=[layer_map],
+    tooltip={"text": "Lat: {latitude}\nLon: {longitude}\nPM2.5: {PM2.5_Predicted:.2f}"}
+))
 
 # ------------------- CITY MONITORING -------------------
 st.markdown("### 🌐 Multi-City Live PM2.5 & PM10 Monitoring Dashboard")
 
 available_cities = {
-    "Delhi": "Data/delhi_pm_data.csv",
-    "Bangalore": "Data/bangalore_pm_data.csv",
-    "Hyderabad": "Data/hyderabad_pm_data.csv",
-    "Kolkata": "Data/kolkata_pm_data.csv"
+    "Delhi": "data/delhi_pm_data.csv",
+    "Bangalore": "data/bangalore_pm_data.csv",
+    "Hyderabad": "data/hyderabad_pm_data.csv",
+    "Kolkata": "data/kolkata_pm_data.csv"
 }
 
 st.sidebar.header("🔧 Configuration")
