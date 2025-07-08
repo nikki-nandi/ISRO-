@@ -89,7 +89,7 @@ def get_pm_color(pm):
 st.markdown("### 🌏 High-Resolution PM2.5 Prediction Map")
 @st.cache_data
 def load_high_res_data():
-    return pd.read_csv("data/high_res_input_sample_100.csv")
+    return pd.read_csv("Data/high_res_input_sample_100.csv")
 
 df_map = load_high_res_data()
 features = ["aod", "reflectance_SWIR", "temperature_2m", "humidity_2m", "pbl_height", "wind_speed_10m", "hour"]
@@ -106,10 +106,10 @@ st.pydeck_chart(pdk.Deck(map_style="mapbox://styles/mapbox/dark-v10", initial_vi
 st.markdown("### 🌐 Multi-City Live PM2.5 & PM10 Monitoring Dashboard")
 
 available_cities = {
-    "Delhi": "data/delhi_pm_data.csv",
-    "Bangalore": "data/bangalore_pm_data.csv",
-    "Hyderabad": "data/hyderabad_pm_data.csv",
-    "Kolkata": "data/kolkata_pm_data.csv"
+    "Delhi": "Data/delhi_pm_data.csv",
+    "Bangalore": "Data/bangalore_pm_data.csv",
+    "Hyderabad": "Data/hyderabad_pm_data.csv",
+    "Kolkata": "Data/kolkata_pm_data.csv"
 }
 
 st.sidebar.header("🔧 Configuration")
