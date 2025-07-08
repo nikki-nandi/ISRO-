@@ -8,57 +8,12 @@ import os
 import smtplib
 import altair as alt
 import gdown
-from prophet import Prophet
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from prophet.plot import plot_plotly
-import plotly.graph_objs as go
-from datetime import datetime, timedelta
 
-# --- MODEL DOWNLOAD ---
-def download_models():
-    os.makedirs("models", exist_ok=True)
-
-    model_files = {
-        "models/pm25_model.pkl": "1WGNp0FsvcLtSIbfk2ZSvOu7QD6nrjZea",
-        "models/pm10_model.pkl": "169669rOcO1zcfiyoZqVW_XLj6YtO5xk3",
-        "models/pm25_scaler.pkl": "134ahvy25P4yTlXLdt5DdaHyUerL1IUv7",
-        "models/pm10_scaler.pkl": "1rTZb-CgQpkrrnOkE43UiXtFtFKQDPjde"
-    }
-
-    for path, file_id in model_files.items():
-        if not os.path.exists(path):
-            url = f"https://drive.google.com/uc?id={file_id}"
-            gdown.download(url, path, quiet=False)
-
-download_models()
-
-# --- LOAD MODELS ---
-pm25_model = joblib.load("models/pm25_model.pkl")
-pm10_model = joblib.load("models/pm10_model.pkl")
-pm25_scaler = joblib.load("models/pm25_scaler.pkl")
-pm10_scaler = joblib.load("models/pm10_scaler.pkl")
-
-# --- CONFIGURATION ---
-EMAIL_SENDER = "nikithnandi08@gmail.com"
-EMAIL_PASSWORD = "sshz jpyi pibg jxev"
-EMAIL_RECEIVER = "nikithnandi08@gmail.com"
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-PM25_THRESHOLD = 120
-PM10_THRESHOLD = 250
-
-email_recipients = {
-    "Delhi": EMAIL_RECEIVER,
-    "Bangalore": EMAIL_RECEIVER,
-    "Hyderabad": EMAIL_RECEIVER,
-    "Kolkata": EMAIL_RECEIVER
-}
-
-# --- PAGE CONFIG ---
+# ------------------- CONFIG -------------------
 st.set_page_config(page_title="PM2.5 & PM10 Monitoring Dashboard", layout="wide")
 
-# --- DARK MODE CSS + Sidebar Label Styling ---
 st.markdown("""
     <style>
     .main { background-color: #0b1725; color: #ffffff; }
@@ -86,25 +41,42 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- HEADER ---
-col_logo1, col_title, col_logo2 = st.columns([1, 5, 1])
-with col_logo1:
+# ------------------- MODEL DOWNLOAD -------------------
+def download_models():
+    os.makedirs("models", exist_ok=True)
+    model_files = {
+        "models/pm25_model.pkl": "1WGNp0FsvcLtSIbfk2ZSvOu7QD6nrjZea",
+        "models/pm10_model.pkl": "169669rOcO1zcfiyoZqVW_XLj6YtO5xk3",
+        "models/pm25_scaler.pkl": "134ahvy25P4yTlXLdt5DdaHyUerL1IUv7",
+        "models/pm10_scaler.pkl": "1rTZb-CgQpkrrnOkE43UiXtFtFKQDPjde"
+    }
+    for path, file_id in model_files.items():
+        if not os.path.exists(path):
+            gdown.download(f"https://drive.google.com/uc?id={file_id}", path, quiet=False)
+
+download_models()
+
+# ------------------- LOAD MODELS -------------------
+pm25_model = joblib.load("models/pm25_model.pkl")
+pm10_model = joblib.load("models/pm10_model.pkl")
+pm25_scaler = joblib.load("models/pm25_scaler.pkl")
+pm10_scaler = joblib.load("models/pm10_scaler.pkl")
+
+# ------------------- HEADER -------------------
+col1, col2, col3 = st.columns([1, 5, 1])
+with col1:
     st.image("ISRO-Color.png", width=150)
-with col_title:
+with col2:
     st.markdown("""
         <h2 style='text-align: center; color: #64b5f6;'>ISRO & CPCB AIR POLLUTION LIVE MONITORING SITE</h2>
         <h5 style='text-align: center; color: #a5b4c3;'>Real-Time Air Quality Monitoring</h5>
     """, unsafe_allow_html=True)
-with col_logo2:
+with col3:
     st.image("cpcb.png", width=150)
 
 st.markdown("---")
 
-# --- HIGH-RESOLUTION MAP DATA ---
-@st.cache_data
-def load_high_res_data():
-    return pd.read_csv("Data/high_res_input_sample_100.csv")
-
+# ------------------- UTILS -------------------
 def get_pm_color(pm):
     if pm <= 60:
         return [0, 200, 0]
@@ -113,51 +85,31 @@ def get_pm_color(pm):
     else:
         return [255, 0, 0]
 
-# --- SECTION 1: High Resolution Map ---
+# ------------------- HIGH RES MAP -------------------
 st.markdown("### 🌏 High-Resolution PM2.5 Prediction Map")
+@st.cache_data
+def load_high_res_data():
+    return pd.read_csv("data/high_res_input_sample_100.csv")
+
 df_map = load_high_res_data()
 features = ["aod", "reflectance_SWIR", "temperature_2m", "humidity_2m", "pbl_height", "wind_speed_10m", "hour"]
 X_scaled = pm25_scaler.transform(df_map[features])
 df_map["PM2.5_Predicted"] = pm25_model.predict(X_scaled)
 df_map["color"] = df_map["PM2.5_Predicted"].apply(get_pm_color)
 
-layer_map = pdk.Layer(
-    "ScatterplotLayer",
-    data=df_map,
-    get_position='[longitude, latitude]',
-    get_radius=10000,
-    get_fill_color="color",
-    pickable=True,
-    opacity=0.8,
-)
-
+layer_map = pdk.Layer("ScatterplotLayer", data=df_map, get_position='[longitude, latitude]', get_radius=10000, get_fill_color="color", pickable=True, opacity=0.8)
 view_map = pdk.ViewState(latitude=22.5, longitude=80.0, zoom=4.5, pitch=40)
 
-st.pydeck_chart(pdk.Deck(
-    map_style="mapbox://styles/mapbox/dark-v10",
-    initial_view_state=view_map,
-    layers=[layer_map],
-    tooltip={"text": "Lat: {latitude}\nLon: {longitude}\nPM2.5: {PM2.5_Predicted}"}
-))
+st.pydeck_chart(pdk.Deck(map_style="mapbox://styles/mapbox/dark-v10", initial_view_state=view_map, layers=[layer_map], tooltip={"text": "Lat: {latitude}\nLon: {longitude}\nPM2.5: {PM2.5_Predicted}"}))
 
-with st.expander("📋 Show High-Resolution Prediction Table"):
-    st.dataframe(df_map[["latitude", "longitude", "PM2.5_Predicted"]].round(2))
-
-st.download_button(
-    label="📅 Download High-Res Predictions",
-    data=df_map.to_csv(index=False).encode(),
-    file_name="pm25_high_res_predictions.csv",
-    mime="text/csv"
-)
-
-# --- SECTION 2: Real-Time City Monitoring ---
+# ------------------- CITY MONITORING -------------------
 st.markdown("### 🌐 Multi-City Live PM2.5 & PM10 Monitoring Dashboard")
 
 available_cities = {
-    "Delhi": "Data/delhi_pm_data.csv",
-    "Bangalore": "Data/bangalore_pm_data.csv",
-    "Hyderabad": "Data/hyderabad_pm_data.csv",
-    "Kolkata": "Data/kolkata_pm_data.csv"
+    "Delhi": "data/delhi_pm_data.csv",
+    "Bangalore": "data/bangalore_pm_data.csv",
+    "Hyderabad": "data/hyderabad_pm_data.csv",
+    "Kolkata": "data/kolkata_pm_data.csv"
 }
 
 st.sidebar.header("🔧 Configuration")
@@ -167,12 +119,10 @@ refresh_interval = st.sidebar.selectbox("Refresh Interval (seconds)", [1, 5, 10]
 frames = []
 for city in selected_cities:
     path = available_cities.get(city)
-    if path and os.path.exists(path):
+    if os.path.exists(path):
         df = pd.read_csv(path)
         df["city"] = city
         frames.append(df)
-    else:
-        st.warning(f"Data for {city} not found at {path}")
 
 if not frames:
     st.stop()
@@ -180,44 +130,15 @@ if not frames:
 df_all = pd.concat(frames, ignore_index=True)
 model_features = ["aod", "reflectance_SWIR", "temperature_2m", "humidity_2m", "pbl_height", "wind_speed_10m", "hour"]
 
-# --- EMAIL ALERT FUNCTION ---
-def send_alert_email(city, pm25, pm10, hour):
-    recipient = email_recipients.get(city)
-    if not recipient:
-        return
-    msg = MIMEMultipart()
-    msg["From"] = EMAIL_SENDER
-    msg["To"] = recipient
-    msg["Subject"] = f"🚨 ALERT: PM Levels in {city}"
-    body = f"""
-    ⚠️ Air Quality Alert for {city} at Hour {hour} ⚠️
-
-    PM2.5: {pm25:.2f} μg/m³ (Threshold: {PM25_THRESHOLD})
-    PM10 : {pm10:.2f} μg/m³ (Threshold: {PM10_THRESHOLD})
-    """
-    msg.attach(MIMEText(body, "plain"))
-    try:
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(EMAIL_SENDER, EMAIL_PASSWORD)
-            server.send_message(msg)
-    except Exception as e:
-        print(f"Email failed: {e}")
-
-# --- LIVE LOOP ---
+# ------------------- LIVE MONITORING -------------------
 st.subheader("📱 Realtime AQ Monitoring")
 placeholder = st.empty()
-alert_sent = set()
 
 for i in range(len(df_all)):
     row = df_all.iloc[i].copy()
     features_df = pd.DataFrame([row[model_features]])
     row["PM2.5_pred"] = pm25_model.predict(pm25_scaler.transform(features_df))[0]
     row["PM10_pred"] = pm10_model.predict(pm10_scaler.transform(features_df))[0]
-
-    if (row["PM2.5_pred"] > PM25_THRESHOLD or row["PM10_pred"] > PM10_THRESHOLD) and row["city"] not in alert_sent:
-        send_alert_email(row["city"], row["PM2.5_pred"], row["PM10_pred"], row["hour"])
-        alert_sent.add(row["city"])
 
     with placeholder.container():
         st.markdown(f"### 🌆 {row['city']} | ⏱️ Hour: {row['hour']}")
@@ -248,11 +169,10 @@ for i in range(len(df_all)):
 
     time.sleep(refresh_interval)
 
-# --- FINAL DOWNLOAD ---
+# ------------------- DOWNLOAD BUTTON -------------------
 st.download_button(
     label="📆 Download All City Predictions",
     data=df_all.to_csv(index=False).encode(),
     file_name="all_city_pm_predictions.csv",
     mime="text/csv"
 )
-
