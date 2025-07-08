@@ -1,0 +1,11 @@
+streamlit
+pandas
+numpy
+pydeck
+joblib
+gdown
+scikit-learn
+altair
+prophet
+plotly
+requests
